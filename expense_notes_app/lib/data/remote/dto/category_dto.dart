@@ -5,22 +5,13 @@ class CategoryDto {
   final String slug;
   final String name;
 
-  CategoryDto({
-    required this.slug,
-    required this.name,
-  });
+  CategoryDto({required this.slug, required this.name});
 
   factory CategoryDto.fromJson(Map<String, dynamic> json) {
-    return CategoryDto(
-      slug: json['slug'],
-      name: json['name'],
-    );
+    return CategoryDto(slug: json['slug'], name: json['name']);
   }
 
   CategoryModel toModel() {
-    return CategoryModel(
-      uuid: slug,
-      name: name,
-    );
+    return CategoryModel(uuid: slug, name: name);
   }
 }

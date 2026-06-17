@@ -7,11 +7,7 @@ class CartDto {
   final int userId;
   final List<CartProductDto> products;
 
-  CartDto({
-    required this.id,
-    required this.userId,
-    required this.products,
-  });
+  CartDto({required this.id, required this.userId, required this.products});
 
   factory CartDto.fromJson(Map<String, dynamic> json) {
     return CartDto(

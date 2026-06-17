@@ -1,7 +1,6 @@
 // cart_product_dto.dart
 import 'package:expense_notes_app/data/model/expense_line_model.dart';
 
-
 class CartProductDto {
   final int id;
   final String title;

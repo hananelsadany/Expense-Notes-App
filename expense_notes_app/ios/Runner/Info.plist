@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Needed to capture receipts</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Needed to select receipts</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Needed to tag expense location</string>
 </dict>
 </plist>
