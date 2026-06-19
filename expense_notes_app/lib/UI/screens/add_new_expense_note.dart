@@ -6,6 +6,10 @@ import '../widgets/image_input.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:math';
 import 'package:image_picker/image_picker.dart';
+import '../widgets/location_input.dart';
+import '../../data/model/expense_note_model.dart';
+import '../../providers/expense_note_provider.dart';
+import '../../data/user_data.dart';
 
 class AddNewExpenseNoteScreen extends ConsumerStatefulWidget {
   const AddNewExpenseNoteScreen({super.key});
@@ -23,6 +27,13 @@ class _AddNewExpenseNoteScreenState
 
   final List<String> _photoPaths = [];
   final _picker = ImagePicker();
+
+  double? _latitude;
+  double? _longitude;
+  double? _locationAccuracy;
+  DateTime? _locationTimestamp;
+
+  bool _isSubmitting = false;
   @override
   void dispose() {
     _titleController.dispose();
@@ -116,7 +127,7 @@ class _AddNewExpenseNoteScreenState
               // lines list goes here
               const SizedBox(height: 24),
 
-              // ── Photos Section ──────────────────────
+              // Photos Section
               const Text('Receipt Photos'),
               const SizedBox(height: 8),
               ImageInput(
@@ -128,29 +139,96 @@ class _AddNewExpenseNoteScreenState
               ),
               const SizedBox(height: 8),
 
-              // photos strip goes here
-              const SizedBox(height: 24),
-
               // ── Location Section ────────────────────
               const Text('Location'),
               const SizedBox(height: 8),
-
+              LocationInput(
+                onLocationChanged: (lat, lng, accuracy, timestamp) {
+                  _latitude = lat;
+                  _longitude = lng;
+                  _locationAccuracy = accuracy;
+                  _locationTimestamp = timestamp;
+                },
+              ),
               // location button goes here
               const SizedBox(height: 32),
 
               // ── Submit Button ───────────────────────
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // Handle form submission
-                  }
-                },
-                child: const Text('Submit'),
-              ),
+              ElevatedButton(onPressed: _submit, child: const Text('Submit')),
             ],
           ),
         ),
       ),
     );
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  bool _validateExtra() {
+    if (_lines.isEmpty) {
+      _showSnack('Add at least one expense line.');
+      return false;
+    }
+    if (_photoPaths.isEmpty) {
+      _showSnack('Attach at least one receipt photo.');
+      return false;
+    }
+    if (_latitude == null || _longitude == null) {
+      _showSnack('Please acquire your location before submitting.');
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!_validateExtra()) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final noteUuid = const Uuid().v4();
+      final now = DateTime.now();
+
+      final lines = _lines.map((l) => l.copyWith(noteUuid: noteUuid)).toList();
+
+      final note = ExpenseNoteModel(
+        uuid: noteUuid,
+        title: _titleController.text.trim(),
+        userId: kDummyUserId,
+        status: 'draft',
+        syncStatus: 'unsynced',
+        creationDate: now,
+        updateDate: now,
+        receiptPhotoPath: _photoPaths.join('|'),
+        latitude: _latitude,
+        longitude: _longitude,
+        locationAccuracy: _locationAccuracy,
+        locationTimestamp: _locationTimestamp,
+        totalAmount: _lines.fold(0.0, (sum, l) => sum + l.lineTotal),
+        lines: lines,
+      );
+
+      // notifier → repository → Drift + API (if online)
+      await ref.read(expenseNoteProvider.notifier).insertNote(note);
+
+      for (final line in lines) {
+        await ref.read(expenseNoteProvider.notifier).insertLine(line);
+      }
+
+      if (mounted) {
+        _showSnack('Expense note added successfully!');
+        await Future.delayed(const Duration(seconds: 1));
+        if (mounted) Navigator.pop(context, note);
+      }
+    } catch (e) {
+      _showSnack('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 }
