@@ -43,8 +43,13 @@ class ExpenseNoteDetailsScreen extends ConsumerWidget {
               ),
             ),
             // Only for local notes
-            if (note.syncStatus == 'Local') ...[
-              ReceiptsSection(receiptPaths: [note.receiptPhotoPath ?? ""]),
+            if (note.syncStatus == 'unsynced') ...[
+              ReceiptsSection(
+                receiptPaths: (note.receiptPhotoPath?.isNotEmpty ?? false)
+                    ? note.receiptPhotoPath!.split('|')
+                    : [],
+              ),
+              //ReceiptsSection(receiptPaths: [note.receiptPhotoPath ?? ""]),
               LocationSection(
                 latitude: note.latitude ?? 0.0,
                 longitude: note.longitude ?? 0.0,

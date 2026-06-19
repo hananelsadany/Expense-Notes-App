@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 class ImageInput extends StatefulWidget {
   const ImageInput({super.key, required this.onImagesChanged});
@@ -43,6 +45,22 @@ class _ImageInputState extends State<ImageInput> {
     );
   }
 
+  // fixing the issue of no image found when my simulator is restarted.
+  Future<File> _persistImage(String tempPath) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final receiptsDir = Directory('${appDir.path}/receipts');
+
+    if (!await receiptsDir.exists()) {
+      await receiptsDir.create(recursive: true);
+    }
+
+    final fileName =
+        '${DateTime.now().millisecondsSinceEpoch}_${p.basename(tempPath)}';
+    final newPath = '${receiptsDir.path}/$fileName';
+
+    return File(tempPath).copy(newPath);
+  }
+
   Future<void> _pickImage(ImageSource source) async {
     final picked = await _picker.pickImage(
       source: source,
@@ -51,7 +69,10 @@ class _ImageInputState extends State<ImageInput> {
       imageQuality: 80,
     );
     if (picked == null) return;
-    setState(() => _images.add(File(picked.path)));
+
+    final savedFile = await _persistImage(picked.path);
+
+    setState(() => _images.add(savedFile));
     widget.onImagesChanged(_images);
   }
 
@@ -65,7 +86,6 @@ class _ImageInputState extends State<ImageInput> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Preview strip
         if (_images.isNotEmpty)
           SizedBox(
             height: 110,
@@ -110,10 +130,7 @@ class _ImageInputState extends State<ImageInput> {
               },
             ),
           ),
-
         const SizedBox(height: 8),
-
-        // Add button
         ElevatedButton.icon(
           onPressed: _showOptions,
           icon: const Icon(Icons.add_a_photo_outlined),
