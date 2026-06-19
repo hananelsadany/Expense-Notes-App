@@ -43,17 +43,19 @@ class _ExpenseNotesListScreenState
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () async {
+            onPressed: _refreshWithFeedback,
+            /*() async {
               await ref.read(expenseNoteProvider.notifier).loadNotes();
-            },
+            },*/
           ),
         ],
       ),
       body: RefreshIndicator(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        onRefresh: () async {
+        onRefresh: _refreshWithFeedback,
+        /*() async {
           await ref.read(expenseNoteProvider.notifier).loadNotes();
-        },
+        },*/
         child: Container(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -129,6 +131,26 @@ class _ExpenseNotesListScreenState
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  Future<void> _refreshWithFeedback() async {
+    print('_refreshWithFeedback was called ... ');
+    final notifier = ref.read(expenseNoteProvider.notifier);
+
+    await notifier.loadNotes();
+
+    final state = ref.read(expenseNoteProvider);
+    print(state.failure);
+    // only show warning if sync failed but we still have cached data
+    if (state.failure != null && state.notes.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sync failed, showing cached data'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 }
 
