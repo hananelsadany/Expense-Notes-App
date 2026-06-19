@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/expense_note_provider.dart';
 import '../widgets/Note_card.dart';
+import '../widgets/filter/filter_bar.dart';
+import '../../data/model/expense_note_model.dart';
 
 class ExpenseNotesListScreen extends ConsumerStatefulWidget {
   const ExpenseNotesListScreen({super.key});
@@ -14,9 +16,27 @@ class ExpenseNotesListScreen extends ConsumerStatefulWidget {
 
 class _ExpenseNotesListScreenState
     extends ConsumerState<ExpenseNotesListScreen> {
+  // Filter state
+  String _selectedStatus = 'all';
+  String _selectedSync = 'all';
+
+  // Computed
+  List<ExpenseNoteModel> _filteredNotes(List<ExpenseNoteModel> notes) {
+    return notes.where((note) {
+      if (_selectedStatus != 'all' && note.status != _selectedStatus)
+        return false;
+      if (_selectedSync == 'synced' && note.syncStatus != 'synced')
+        return false;
+      if (_selectedSync == 'unsynced' && note.syncStatus != 'unsynced')
+        return false;
+      return true;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final fstate = ref.watch(expenseNoteProvider);
+    final filtered = _filteredNotes(fstate.notes);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Expense Notes'),
@@ -38,7 +58,7 @@ class _ExpenseNotesListScreenState
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              SearchBar(hintText: 'Search notes...', onChanged: (value) => {}),
+              //  SearchBar(hintText: 'Search notes...', onChanged: (value) => {}),
               if (fstate.isLoading)
                 SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -83,16 +103,23 @@ class _ExpenseNotesListScreenState
                   ),
                 )
               else
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: fstate.notes.length,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      final note = fstate.notes[index];
-                      return NoteCard(note: note);
-                    },
-                  ),
+                FilterBar(
+                  selectedStatus: _selectedStatus,
+                  selectedSync: _selectedSync,
+                  onStatusChanged: (val) =>
+                      setState(() => _selectedStatus = val),
+                  onSyncChanged: (val) => setState(() => _selectedSync = val),
                 ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: filtered.length,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final note = filtered[index];
+                    return NoteCard(note: note);
+                  },
+                ),
+              ),
             ],
           ),
         ),
